@@ -57,7 +57,14 @@ FROM docker.io/alpine:3.22
 # private by accident failed its first pull with a bare "unauthorized", which
 # names nothing and sends you looking in the wrong place.
 LABEL org.opencontainers.image.source="https://github.com/hecate-services/hecate-turn-credentials"
-RUN apk add --no-cache ncurses-libs libstdc++ libgcc openssl ca-certificates curl
+# zstd-libs/snappy/lz4-libs: the RUNTIME shared libraries for rocksdb's
+# compression backends, compiled against in the builder stage above via
+# their -dev packages. Missing here crash-looped the release on beam00
+# on boot: rocksdb's on_load NIF init failed with "Failed to load NIF
+# library: Error loading shared library liblz4.so.1: No such file or
+# directory", which takes the whole node down since kernel can't start.
+RUN apk add --no-cache ncurses-libs libstdc++ libgcc openssl ca-certificates curl \
+        zstd-libs snappy lz4-libs
 WORKDIR /app
 COPY --from=builder /build/_build/prod/rel/hecate_turn_credentials ./
 
